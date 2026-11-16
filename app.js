@@ -2991,6 +2991,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // Update Sample Checkout Button in button group
     const chkBtn = document.getElementById('calc-sample-checkout-btn');
     const chkBtnAmt = document.getElementById('calc-checkout-btn-amt');
+    const waBtn = document.getElementById('calc-whatsapp-btn');
+    const emailBtn = document.getElementById('calc-email-btn');
     
     if (samples.length > 0) {
       const samplePodsCost = samples.reduce((acc, i) => acc + (i.totalPrice || i.priceAvg || 0), 0);
@@ -3004,8 +3006,11 @@ document.addEventListener('DOMContentLoaded', () => {
         samples: samples
       };
 
+      // When samples are added, show ONLY the checkout button
       if (chkBtn) chkBtn.style.display = 'inline-flex';
       if (chkBtnAmt) chkBtnAmt.innerText = '₹' + totalSamplePayable.toLocaleString('en-IN');
+      if (waBtn) waBtn.style.display = 'none';
+      if (emailBtn) emailBtn.style.display = 'none';
 
       // Update modal display elements
       const podsEl = document.getElementById('chk-pods-cost');
@@ -3019,6 +3024,8 @@ document.addEventListener('DOMContentLoaded', () => {
       if (proceedTextEl) proceedTextEl.innerText = `💳 Proceed to Razorpay Payment (₹${totalSamplePayable.toLocaleString('en-IN')}) →`;
     } else {
       if (chkBtn) chkBtn.style.display = 'none';
+      if (waBtn) waBtn.style.display = 'inline-flex';
+      if (emailBtn) emailBtn.style.display = 'inline-flex';
       window.currentEstSampleCalculation = null;
     }
   };
@@ -3197,16 +3204,71 @@ document.addEventListener('DOMContentLoaded', () => {
       const waMsg = `*LISHA TRADERS - RAZORPAY SAMPLE ORDER CONFIRMED*\n` +
         `----------------------------------------\n` +
         `*Consignment ID:* ${orderId}\n` +
+        `*Payment Status:* SUCCESSFUL & PAID\n` +
         `*Razorpay Payment ID:* ${paymentId}\n` +
         `*Amount Paid:* ₹${details.totalRupees.toLocaleString('en-IN')}\n` +
-        `*Payment Gateway:* Razorpay (Test Mode)\n` +
-        `*Items:* ${itemsSummary}\n` +
-        `*Shipping Address:* ${details.name}, ${details.address}, ${details.city} - ${details.pincode}\n` +
-        `*Contact Mobile:* ${details.phone}\n` +
+        `*Payment Mode:* Razorpay Test Mode\n` +
+        `*Items:* ${itemsSummary}\n\n` +
+        `*DELIVERY DESTINATION ADDRESS:*\n` +
+        `*Recipient Name:* ${details.name}\n` +
+        `*Mobile / WhatsApp:* ${details.phone}\n` +
+        `*Email:* ${details.email || 'N/A'}\n` +
+        `*Address:* ${details.address}, ${details.city} - ${details.pincode}\n` +
         `----------------------------------------\n` +
         `Payment verified via Razorpay gateway. Please book 24h Express Flight Courier dispatch with tracking number.`;
       waBtn.href = `https://wa.me/919342153357?text=${encodeURIComponent(waMsg)}`;
     }
+
+    // Email Dispatch: Prepare mailto link with address & payment details
+    const emailReceiptBtn = document.getElementById('chk-receipt-email-btn');
+    const emailSubject = `Sample Order Confirmed - ${orderId} [Razorpay: ${paymentId}]`;
+    const emailBody = `LISHA TRADERS - CARDAMOM SAMPLE CONSIGNMENT ORDER CONFIRMATION\n` +
+      `============================================================\n` +
+      `Consignment ID: ${orderId}\n` +
+      `Payment Status: SUCCESSFUL & PAID (VERIFIED)\n` +
+      `Razorpay Payment ID: ${paymentId}\n` +
+      `Amount Paid: INR ${details.totalRupees} (Sample Pods + Air Flight Courier)\n` +
+      `Payment Gateway: Razorpay Test Mode\n\n` +
+      `ORDER ITEMS:\n` +
+      `${itemsSummary}\n\n` +
+      `DELIVERY DISPATCH ADDRESS:\n` +
+      `Recipient Name: ${details.name}\n` +
+      `Mobile / WhatsApp: ${details.phone}\n` +
+      `Email: ${details.email || 'N/A'}\n` +
+      `Door Address: ${details.address}\n` +
+      `City / District: ${details.city}\n` +
+      `Pincode: ${details.pincode}\n\n` +
+      `Dispatch Mode: 24h Express Air Courier / Flight Cargo\n` +
+      `============================================================`;
+
+    if (emailReceiptBtn) {
+      const ccParam = (details.email && details.email.includes('@')) ? `&cc=${encodeURIComponent(details.email)}` : '';
+      emailReceiptBtn.href = `mailto:lishatraders@gmail.com?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}${ccParam}`;
+    }
+
+    // Automated background email notification via FormSubmit
+    try {
+      fetch('https://formsubmit.co/ajax/lishatraders@gmail.com', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          _subject: `Paid Sample Order - ${orderId} (Razorpay: ${paymentId})`,
+          Consignment_ID: orderId,
+          Payment_Status: 'SUCCESSFUL & PAID (Razorpay Verified)',
+          Razorpay_Payment_ID: paymentId,
+          Amount_Paid: `₹${details.totalRupees}`,
+          Customer_Name: details.name,
+          Customer_Phone: details.phone,
+          Customer_Email: details.email || 'Not provided',
+          Delivery_Address: `${details.address}, ${details.city} - ${details.pincode}`,
+          Sample_Items: itemsSummary,
+          Dispatch_Timeline: '24h Express Flight Courier'
+        })
+      }).then(r => r.json()).catch(() => {});
+    } catch(err) {}
   }
   window.handleRazorpaySuccess = handleRazorpaySuccess;
 

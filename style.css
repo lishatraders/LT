@@ -7070,6 +7070,17 @@ img.clickable-spec:hover {
 #checkout-modal-step-success {
   animation: fadeIn 0.4s ease-in-out;
 }
+#chk-receipt-wa-btn:hover {
+  background: #1eb954 !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 211, 102, 0.4) !important;
+}
+#chk-receipt-email-btn:hover {
+  background: #0f3d5c !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(11, 77, 117, 0.4) !important;
+}
+
 
 
 
