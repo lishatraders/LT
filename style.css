@@ -7049,20 +7049,27 @@ img.clickable-spec:hover {
   animation: radarPulse 1.6s infinite ease-in-out;
 }
 
-/* Razorpay Checkout Card Styles */
-#est-razorpay-checkout-box {
-  animation: fadeIn 0.3s ease-in-out;
+/* Sample Checkout Modal & Button Styles */
+#calc-sample-checkout-btn:hover {
+  background: #15803d !important;
+  border-color: #15803d !important;
+  transform: translateY(-1px);
+  box-shadow: 0 5px 16px rgba(22, 163, 74, 0.4) !important;
 }
-#btn-rzp-pay:hover {
+#calc-sample-checkout-btn:active {
+  transform: translateY(1px);
+}
+#btn-chk-proceed-rzp:hover {
   background: #15803d !important;
   transform: translateY(-1px);
   box-shadow: 0 6px 18px rgba(22, 163, 74, 0.45) !important;
 }
-#btn-rzp-pay:active {
+#btn-chk-proceed-rzp:active {
   transform: translateY(1px);
 }
-#rzp-payment-success {
+#checkout-modal-step-success {
   animation: fadeIn 0.4s ease-in-out;
 }
+
 
 

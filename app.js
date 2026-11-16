@@ -2988,45 +2988,38 @@ document.addEventListener('DOMContentLoaded', () => {
     const formattedId = `LT-${sizesJoined}-${Math.max(1, totalBags)}-${custNum}`;
     document.getElementById('invoice-id').innerText = formattedId;
 
-    // Update Razorpay Payment section at the end of the Estimate Summary
-    const rzpBox = document.getElementById('est-razorpay-checkout-box');
-    if (rzpBox) {
-      if (samples.length > 0) {
-        rzpBox.style.display = 'block';
-        const samplePodsCost = samples.reduce((acc, i) => acc + (i.totalPrice || i.priceAvg || 0), 0);
-        const flightCourierCost = 150;
-        const totalSamplePayable = samplePodsCost + flightCourierCost;
-        
-        window.currentEstSampleCalculation = {
-          samplePodsCost: samplePodsCost,
-          flightCourierCost: flightCourierCost,
-          totalSamplePayable: totalSamplePayable,
-          samples: samples
-        };
+    // Update Sample Checkout Button in button group
+    const chkBtn = document.getElementById('calc-sample-checkout-btn');
+    const chkBtnAmt = document.getElementById('calc-checkout-btn-amt');
+    
+    if (samples.length > 0) {
+      const samplePodsCost = samples.reduce((acc, i) => acc + (i.totalPrice || i.priceAvg || 0), 0);
+      const flightCourierCost = 150;
+      const totalSamplePayable = samplePodsCost + flightCourierCost;
+      
+      window.currentEstSampleCalculation = {
+        samplePodsCost: samplePodsCost,
+        flightCourierCost: flightCourierCost,
+        totalSamplePayable: totalSamplePayable,
+        samples: samples
+      };
 
-        const podsCostEl = document.getElementById('rzp-pay-pods-cost');
-        const flightCostEl = document.getElementById('rzp-pay-flight-cost');
-        const totalCostEl = document.getElementById('rzp-pay-total-cost');
-        const btnPayText = document.getElementById('btn-rzp-pay-text');
+      if (chkBtn) chkBtn.style.display = 'inline-flex';
+      if (chkBtnAmt) chkBtnAmt.innerText = '₹' + totalSamplePayable.toLocaleString('en-IN');
 
-        if (podsCostEl) podsCostEl.innerText = '₹' + samplePodsCost.toLocaleString('en-IN');
-        if (flightCostEl) flightCostEl.innerText = '₹' + flightCourierCost.toLocaleString('en-IN');
-        if (totalCostEl) totalCostEl.innerText = '₹' + totalSamplePayable.toLocaleString('en-IN');
-        if (btnPayText) btnPayText.innerText = `💳 Pay ₹${totalSamplePayable.toLocaleString('en-IN')} via Razorpay →`;
+      // Update modal display elements
+      const podsEl = document.getElementById('chk-pods-cost');
+      const flightEl = document.getElementById('chk-flight-cost');
+      const totalEl = document.getElementById('chk-total-cost');
+      const proceedTextEl = document.getElementById('btn-chk-proceed-text');
 
-        // Pre-fill shipping inputs from main quote form if available
-        const mainName = document.getElementById('calc-name');
-        const mainPhone = document.getElementById('calc-phone');
-        const mainEmail = document.getElementById('calc-email');
-        const rzpName = document.getElementById('rzp-ship-name');
-        const rzpPhone = document.getElementById('rzp-ship-phone');
-        const rzpEmail = document.getElementById('rzp-ship-email');
-        if (rzpName && !rzpName.value && mainName && mainName.value) rzpName.value = mainName.value;
-        if (rzpPhone && !rzpPhone.value && mainPhone && mainPhone.value) rzpPhone.value = mainPhone.value;
-        if (rzpEmail && !rzpEmail.value && mainEmail && mainEmail.value) rzpEmail.value = mainEmail.value;
-      } else {
-        rzpBox.style.display = 'none';
-      }
+      if (podsEl) podsEl.innerText = '₹' + samplePodsCost.toLocaleString('en-IN');
+      if (flightEl) flightEl.innerText = '₹' + flightCourierCost.toLocaleString('en-IN');
+      if (totalEl) totalEl.innerText = '₹' + totalSamplePayable.toLocaleString('en-IN');
+      if (proceedTextEl) proceedTextEl.innerText = `💳 Proceed to Razorpay Payment (₹${totalSamplePayable.toLocaleString('en-IN')}) →`;
+    } else {
+      if (chkBtn) chkBtn.style.display = 'none';
+      window.currentEstSampleCalculation = null;
     }
   };
   window.updateQuote = updateQuote;
@@ -3037,7 +3030,7 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   // ==========================================
-  // RAZORPAY PAYMENT GATEWAY INTEGRATION
+  // RAZORPAY PAYMENT GATEWAY & MODAL CHECKOUT
   // Merchant Identifier: U0ljOSpTLGQCGO
   // ==========================================
   const RAW_RAZORPAY_KEY = 'U0ljOSpTLGQCGO';
@@ -3046,19 +3039,56 @@ document.addEventListener('DOMContentLoaded', () => {
     : ('rzp_live_' + RAW_RAZORPAY_KEY);
   window.RAZORPAY_KEY_ID = RAZORPAY_KEY_ID;
 
-  function payWithRazorpay() {
+  function openSampleCheckoutModal() {
     const calc = window.currentEstSampleCalculation;
     if (!calc || !calc.totalSamplePayable || calc.totalSamplePayable <= 0) {
       alert('Please add sample items to your quote before checking out.');
       return;
     }
 
-    const nameEl = document.getElementById('rzp-ship-name');
-    const phoneEl = document.getElementById('rzp-ship-phone');
-    const emailEl = document.getElementById('rzp-ship-email');
-    const addrEl = document.getElementById('rzp-ship-address');
-    const cityEl = document.getElementById('rzp-ship-city');
-    const pinEl = document.getElementById('rzp-ship-pincode');
+    // Reset views: Show address step, hide success step
+    const stepAddress = document.getElementById('checkout-modal-step-address');
+    const stepSuccess = document.getElementById('checkout-modal-step-success');
+    if (stepAddress) stepAddress.style.display = 'block';
+    if (stepSuccess) stepSuccess.style.display = 'none';
+
+    // Pre-fill shipping inputs from main quote form if available
+    const mainName = document.getElementById('calc-name');
+    const mainPhone = document.getElementById('calc-phone');
+    const mainEmail = document.getElementById('calc-email');
+    const shipName = document.getElementById('chk-ship-name');
+    const shipPhone = document.getElementById('chk-ship-phone');
+    const shipEmail = document.getElementById('chk-ship-email');
+
+    if (shipName && !shipName.value && mainName && mainName.value) shipName.value = mainName.value.trim();
+    if (shipPhone && !shipPhone.value && mainPhone && mainPhone.value) shipPhone.value = mainPhone.value.trim();
+    if (shipEmail && !shipEmail.value && mainEmail && mainEmail.value) shipEmail.value = mainEmail.value.trim();
+
+    const modal = document.getElementById('modal-sample-checkout');
+    if (modal) modal.classList.add('open', 'active');
+  }
+  window.openSampleCheckoutModal = openSampleCheckoutModal;
+
+  function closeSampleCheckoutModal() {
+    const modal = document.getElementById('modal-sample-checkout');
+    if (modal) modal.classList.remove('open', 'active');
+  }
+  window.closeSampleCheckoutModal = closeSampleCheckoutModal;
+
+  // Step 1 -> Next: Validate Address and Launch Razorpay
+  function proceedFromAddressToRazorpay() {
+    const calc = window.currentEstSampleCalculation;
+    if (!calc || !calc.totalSamplePayable || calc.totalSamplePayable <= 0) {
+      alert('Please add sample items to your quote before checking out.');
+      return;
+    }
+
+    const nameEl = document.getElementById('chk-ship-name');
+    const phoneEl = document.getElementById('chk-ship-phone');
+    const emailEl = document.getElementById('chk-ship-email');
+    const addrEl = document.getElementById('chk-ship-address');
+    const cityEl = document.getElementById('chk-ship-city');
+    const pinEl = document.getElementById('chk-ship-pincode');
 
     const name = nameEl ? nameEl.value.trim() : '';
     const phone = phoneEl ? phoneEl.value.trim() : '';
@@ -3068,7 +3098,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const pincode = pinEl ? pinEl.value.trim() : '';
 
     if (!name || !phone || !address || !pincode) {
-      alert('Please enter your Delivery Name, Mobile/WhatsApp Number, Door Address, and Pincode for express flight courier delivery.');
+      alert('Please enter your Delivery Name, Mobile/WhatsApp Number, Door Address, and Pincode for express air dispatch.');
       if (!name && nameEl) nameEl.focus();
       else if (!phone && phoneEl) phoneEl.focus();
       else if (!address && addrEl) addrEl.focus();
@@ -3132,7 +3162,8 @@ document.addEventListener('DOMContentLoaded', () => {
       alert('Could not open Razorpay checkout: ' + (err.message || 'Please check your connection'));
     }
   }
-  window.payWithRazorpay = payWithRazorpay;
+  window.proceedFromAddressToRazorpay = proceedFromAddressToRazorpay;
+  window.payWithRazorpay = proceedFromAddressToRazorpay;
 
   function handleRazorpaySuccess(response, details) {
     const paymentId = (response && response.razorpay_payment_id) ? response.razorpay_payment_id : ('pay_' + Math.random().toString(36).substring(2, 11));
@@ -3143,17 +3174,17 @@ document.addEventListener('DOMContentLoaded', () => {
       if (typeof playSuccessChime === 'function') playSuccessChime();
     } catch(e) {}
 
-    const formBox = document.getElementById('rzp-checkout-form-active');
-    const successBox = document.getElementById('rzp-payment-success');
-    if (formBox) formBox.style.display = 'none';
-    if (successBox) successBox.style.display = 'block';
+    const stepAddress = document.getElementById('checkout-modal-step-address');
+    const stepSuccess = document.getElementById('checkout-modal-step-success');
+    if (stepAddress) stepAddress.style.display = 'none';
+    if (stepSuccess) stepSuccess.style.display = 'block';
 
-    const orderIdEl = document.getElementById('rzp-receipt-order-id');
-    const payIdEl = document.getElementById('rzp-receipt-payment-id');
-    const itemsEl = document.getElementById('rzp-receipt-items');
-    const addrEl = document.getElementById('rzp-receipt-address');
-    const totalEl = document.getElementById('rzp-receipt-total');
-    const waBtn = document.getElementById('rzp-receipt-wa-btn');
+    const orderIdEl = document.getElementById('chk-receipt-order-id');
+    const payIdEl = document.getElementById('chk-receipt-payment-id');
+    const itemsEl = document.getElementById('chk-receipt-items');
+    const addrEl = document.getElementById('chk-receipt-address');
+    const totalEl = document.getElementById('chk-receipt-total');
+    const waBtn = document.getElementById('chk-receipt-wa-btn');
 
     if (orderIdEl) orderIdEl.innerText = orderId;
     if (payIdEl) payIdEl.innerText = paymentId;
