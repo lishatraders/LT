@@ -3031,12 +3031,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ==========================================
   // RAZORPAY PAYMENT GATEWAY & MODAL CHECKOUT
-  // Merchant Identifier: U0ljOSpTLGQCGO
+  // Test Mode Key ID: rzp_test_U0msopzMgCuvCK
   // ==========================================
-  const RAW_RAZORPAY_KEY = 'U0ljOSpTLGQCGO';
-  const RAZORPAY_KEY_ID = (RAW_RAZORPAY_KEY.startsWith('rzp_live_') || RAW_RAZORPAY_KEY.startsWith('rzp_test_'))
-    ? RAW_RAZORPAY_KEY
-    : ('rzp_live_' + RAW_RAZORPAY_KEY);
+  const RAZORPAY_KEY_ID = 'rzp_test_U0msopzMgCuvCK';
   window.RAZORPAY_KEY_ID = RAZORPAY_KEY_ID;
 
   function openSampleCheckoutModal() {
@@ -3130,7 +3127,7 @@ document.addEventListener('DOMContentLoaded', () => {
         email: email || 'lishatraders@gmail.com'
       },
       notes: {
-        merchant_id: 'U0ljOSpTLGQCGO',
+        key_mode: 'test',
         consignment: `Cardamom Samples (${calc.samples.length} items)`,
         shipping_destination: `${name}, ${address}, ${city} - ${pincode}`,
         items_breakdown: sampleDescriptions
@@ -3202,7 +3199,7 @@ document.addEventListener('DOMContentLoaded', () => {
         `*Consignment ID:* ${orderId}\n` +
         `*Razorpay Payment ID:* ${paymentId}\n` +
         `*Amount Paid:* ₹${details.totalRupees.toLocaleString('en-IN')}\n` +
-        `*Merchant ID:* U0ljOSpTLGQCGO\n` +
+        `*Payment Gateway:* Razorpay (Test Mode)\n` +
         `*Items:* ${itemsSummary}\n` +
         `*Shipping Address:* ${details.name}, ${details.address}, ${details.city} - ${details.pincode}\n` +
         `*Contact Mobile:* ${details.phone}\n` +
