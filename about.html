@@ -35,7 +35,7 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=DM+Sans:wght@400;500;600;700&family=Mukta:wght@400;500;600;700&family=Pavanam&family=Cinzel+Decorative:wght@700&family=Praise&display=swap"
     rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=8.8">
+  <link rel="stylesheet" href="style.css?v=8.9">
   <script>
     (function() {
       try {
@@ -55,6 +55,42 @@
         }
       } catch (e) {}
     })();
+  </script>
+  <!-- Structured Data JSON-LD -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "AboutPage",
+        "@id": "https://lishatraders.github.io/LT/about.html#webpage",
+        "url": "https://lishatraders.github.io/LT/about.html",
+        "name": "About Lisha Traders | Bodinayakanur Cardamom Wholesaler",
+        "description": "Discover Lisha Traders, founded in 2012 by Murugadass B in Bodinayakanur. Backed by 12+ certified Spices Board auction permissions.",
+        "breadcrumb": {
+          "@id": "https://lishatraders.github.io/LT/about.html#breadcrumb"
+        }
+      },
+      {
+        "@type": "BreadcrumbList",
+        "@id": "https://lishatraders.github.io/LT/about.html#breadcrumb",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Home",
+            "item": "https://lishatraders.github.io/LT/index.html"
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "About Us",
+            "item": "https://lishatraders.github.io/LT/about.html"
+          }
+        ]
+      }
+    ]
+  }
   </script>
 </head>
 
@@ -120,7 +156,7 @@
         <span>About Us</span>
       </div>
       <div class="eyebrow" data-translate="about_eyebrow">Our Brand Legacy</div>
-      <h1 data-translate="about_title">A Quality You Can Trust, <span>Service You Can Rely On.</span></h1>
+      <h1 data-translate="about_title"><span style="font-size:0.45em; display:block; letter-spacing:1px; text-transform:uppercase; font-family:'DM Sans', sans-serif; font-weight:700; color:var(--gold); margin-bottom:6px;">Bodinayakanur Cardamom Wholesale Supplier</span>A Quality You Can Trust, <span>Service You Can Rely On.</span></h1>
       <p>
         Direct auction sourcing, 12+ Spices Board auction permissions, and over a decade of dedication to wholesale excellence from Bodinayakanur, Tamil Nadu.
       </p>
@@ -576,7 +612,7 @@
     </div>
   </footer>
 
-  <script src="app.js?v=8.8"></script>
+  <script src="app.js?v=8.9"></script>
 </body>
 
 </html>
