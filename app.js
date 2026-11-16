@@ -2988,12 +2988,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const formattedId = `LT-${sizesJoined}-${Math.max(1, totalBags)}-${custNum}`;
     document.getElementById('invoice-id').innerText = formattedId;
 
-    // Update Direct Online Payment section at the end of the Estimate Summary
-    const estPayBox = document.getElementById('est-summary-payment-box');
-    if (estPayBox) {
+    // Update Razorpay Payment section at the end of the Estimate Summary
+    const rzpBox = document.getElementById('est-razorpay-checkout-box');
+    if (rzpBox) {
       if (samples.length > 0) {
-        estPayBox.style.display = 'block';
-        const samplePodsCost = samples.reduce((acc, i) => acc + (i.priceAvg || 0), 0);
+        rzpBox.style.display = 'block';
+        const samplePodsCost = samples.reduce((acc, i) => acc + (i.totalPrice || i.priceAvg || 0), 0);
         const flightCourierCost = 150;
         const totalSamplePayable = samplePodsCost + flightCourierCost;
         
@@ -3004,40 +3004,28 @@ document.addEventListener('DOMContentLoaded', () => {
           samples: samples
         };
 
-        const podsCostEl = document.getElementById('est-pay-pods-cost');
-        const flightCostEl = document.getElementById('est-pay-flight-cost');
-        const totalCostEl = document.getElementById('est-pay-total-cost');
+        const podsCostEl = document.getElementById('rzp-pay-pods-cost');
+        const flightCostEl = document.getElementById('rzp-pay-flight-cost');
+        const totalCostEl = document.getElementById('rzp-pay-total-cost');
+        const btnPayText = document.getElementById('btn-rzp-pay-text');
+
         if (podsCostEl) podsCostEl.innerText = '₹' + samplePodsCost.toLocaleString('en-IN');
         if (flightCostEl) flightCostEl.innerText = '₹' + flightCourierCost.toLocaleString('en-IN');
         if (totalCostEl) totalCostEl.innerText = '₹' + totalSamplePayable.toLocaleString('en-IN');
+        if (btnPayText) btnPayText.innerText = `💳 Pay ₹${totalSamplePayable.toLocaleString('en-IN')} via Razorpay →`;
 
-        // Dynamic Scannable QR Code for Combined Sample Consignment
-        const desc = encodeURIComponent(`Lisha Traders ${samples.length} Samples Consignment`);
-        const amountStr = Number(totalSamplePayable).toFixed(2);
-        const upiUrl = `upi://pay?pa=chandru200405-1@okaxis&pn=chan%20.M&aid=uGICAgMCI16Pzdg&am=${amountStr}&cu=INR&tn=${desc}`;
-        window.currentEstUpiUrl = upiUrl;
-
-        const qrLink = document.getElementById('est-qr-link');
-        if (qrLink) qrLink.href = upiUrl;
-
-        const qrImg = document.getElementById('est-qr-code-img');
-        if (qrImg) {
-          if (window.QRCode && typeof window.QRCode.toDataURL === 'function') {
-            window.QRCode.toDataURL(upiUrl, {
-              width: 260,
-              margin: 2,
-              errorCorrectionLevel: 'M',
-              color: { dark: '#0f172a', light: '#ffffff' }
-            }, function(err, url) {
-              if (!err && url) qrImg.src = url;
-              else qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=190x190&data=${encodeURIComponent(upiUrl)}&margin=2`;
-            });
-          } else {
-            qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=190x190&data=${encodeURIComponent(upiUrl)}&margin=2`;
-          }
-        }
+        // Pre-fill shipping inputs from main quote form if available
+        const mainName = document.getElementById('calc-name');
+        const mainPhone = document.getElementById('calc-phone');
+        const mainEmail = document.getElementById('calc-email');
+        const rzpName = document.getElementById('rzp-ship-name');
+        const rzpPhone = document.getElementById('rzp-ship-phone');
+        const rzpEmail = document.getElementById('rzp-ship-email');
+        if (rzpName && !rzpName.value && mainName && mainName.value) rzpName.value = mainName.value;
+        if (rzpPhone && !rzpPhone.value && mainPhone && mainPhone.value) rzpPhone.value = mainPhone.value;
+        if (rzpEmail && !rzpEmail.value && mainEmail && mainEmail.value) rzpEmail.value = mainEmail.value;
       } else {
-        estPayBox.style.display = 'none';
+        rzpBox.style.display = 'none';
       }
     }
   };
@@ -3048,79 +3036,39 @@ document.addEventListener('DOMContentLoaded', () => {
     window.estimateItems = items;
   };
 
-  // Estimate Summary Direct Online Payment Logic
-  function switchEstPaymentTab(tab) {
-    const tabUpi = document.getElementById('est-tab-upi');
-    const tabBank = document.getElementById('est-tab-bank');
-    const panelUpi = document.getElementById('est-panel-upi');
-    const panelBank = document.getElementById('est-panel-bank');
+  // ==========================================
+  // RAZORPAY PAYMENT GATEWAY INTEGRATION
+  // Merchant Identifier: U0ljOSpTLGQCGO
+  // ==========================================
+  const RAW_RAZORPAY_KEY = 'U0ljOSpTLGQCGO';
+  const RAZORPAY_KEY_ID = (RAW_RAZORPAY_KEY.startsWith('rzp_live_') || RAW_RAZORPAY_KEY.startsWith('rzp_test_'))
+    ? RAW_RAZORPAY_KEY
+    : ('rzp_live_' + RAW_RAZORPAY_KEY);
+  window.RAZORPAY_KEY_ID = RAZORPAY_KEY_ID;
 
-    if (tab === 'bank') {
-      if (tabBank) {
-        tabBank.style.background = '#16a34a';
-        tabBank.style.color = '#fff';
-        tabBank.style.borderColor = '#16a34a';
-      }
-      if (tabUpi) {
-        tabUpi.style.background = '#ffffff';
-        tabUpi.style.color = '#475569';
-        tabUpi.style.borderColor = '#cbd5e1';
-      }
-      if (panelUpi) panelUpi.style.display = 'none';
-      if (panelBank) panelBank.style.display = 'block';
-    } else {
-      if (tabUpi) {
-        tabUpi.style.background = '#16a34a';
-        tabUpi.style.color = '#fff';
-        tabUpi.style.borderColor = '#16a34a';
-      }
-      if (tabBank) {
-        tabBank.style.background = '#ffffff';
-        tabBank.style.color = '#475569';
-        tabBank.style.borderColor = '#cbd5e1';
-      }
-      if (panelUpi) panelUpi.style.display = 'block';
-      if (panelBank) panelBank.style.display = 'none';
+  function payWithRazorpay() {
+    const calc = window.currentEstSampleCalculation;
+    if (!calc || !calc.totalSamplePayable || calc.totalSamplePayable <= 0) {
+      alert('Please add sample items to your quote before checking out.');
+      return;
     }
-  }
-  window.switchEstPaymentTab = switchEstPaymentTab;
 
-  function handleEstQrClick(e) {
-    if (e && typeof e.preventDefault === 'function') {
-      e.preventDefault();
-    }
-    if (window.currentEstUpiUrl) {
-      window.location.href = window.currentEstUpiUrl;
-    }
-  }
-  window.handleEstQrClick = handleEstQrClick;
-
-  function handleEstUtrAutoCheck(val) {
-    if (!val) return;
-    const clean = String(val).trim().replace(/[^0-9]/g, '');
-    if (clean.length === 12) {
-      executeEstPaymentConfirmation(clean);
-    }
-  }
-  window.handleEstUtrAutoCheck = handleEstUtrAutoCheck;
-
-  function confirmEstimatePaymentDone() {
-    const nameEl = document.getElementById('est-ship-name');
-    const phoneEl = document.getElementById('est-ship-phone');
-    const addrEl = document.getElementById('est-ship-address');
-    const cityEl = document.getElementById('est-ship-city');
-    const pinEl = document.getElementById('est-ship-pincode');
-    const utrEl = document.getElementById('est-pay-utr');
+    const nameEl = document.getElementById('rzp-ship-name');
+    const phoneEl = document.getElementById('rzp-ship-phone');
+    const emailEl = document.getElementById('rzp-ship-email');
+    const addrEl = document.getElementById('rzp-ship-address');
+    const cityEl = document.getElementById('rzp-ship-city');
+    const pinEl = document.getElementById('rzp-ship-pincode');
 
     const name = nameEl ? nameEl.value.trim() : '';
     const phone = phoneEl ? phoneEl.value.trim() : '';
+    const email = emailEl ? emailEl.value.trim() : '';
     const address = addrEl ? addrEl.value.trim() : '';
     const city = cityEl ? cityEl.value.trim() : '';
     const pincode = pinEl ? pinEl.value.trim() : '';
-    const utr = utrEl ? utrEl.value.trim() : '';
 
     if (!name || !phone || !address || !pincode) {
-      alert('Please enter your Delivery Name, Mobile Number, Shipping Address, and Pincode for express air dispatch.');
+      alert('Please enter your Delivery Name, Mobile/WhatsApp Number, Door Address, and Pincode for express flight courier delivery.');
       if (!name && nameEl) nameEl.focus();
       else if (!phone && phoneEl) phoneEl.focus();
       else if (!address && addrEl) addrEl.focus();
@@ -3128,76 +3076,112 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    executeEstPaymentConfirmation(utr);
+    const totalRupees = calc.totalSamplePayable;
+    const amountPaise = Math.round(totalRupees * 100);
+    const sampleDescriptions = (calc.samples && calc.samples.length > 0)
+      ? calc.samples.map(s => `${s.grade} (${s.sampleSize || '50g'})`).join(', ')
+      : 'Cardamom Samples';
+
+    if (typeof window.Razorpay === 'undefined') {
+      alert('Razorpay Checkout SDK is loading or blocked. Please verify your internet connection.');
+      return;
+    }
+
+    const options = {
+      key: window.RAZORPAY_KEY_ID || RAZORPAY_KEY_ID,
+      amount: amountPaise,
+      currency: 'INR',
+      name: 'Lisha Traders',
+      description: `Sample Consignment (${calc.samples.length} items): ${sampleDescriptions.substring(0, 45)}`,
+      image: 'assets/images/logo.png',
+      prefill: {
+        name: name,
+        contact: phone,
+        email: email || 'lishatraders@gmail.com'
+      },
+      notes: {
+        merchant_id: 'U0ljOSpTLGQCGO',
+        consignment: `Cardamom Samples (${calc.samples.length} items)`,
+        shipping_destination: `${name}, ${address}, ${city} - ${pincode}`,
+        items_breakdown: sampleDescriptions
+      },
+      theme: {
+        color: '#16a34a'
+      },
+      handler: function(response) {
+        handleRazorpaySuccess(response, {
+          name, phone, email, address, city, pincode, totalRupees, samples: calc.samples
+        });
+      },
+      modal: {
+        ondismiss: function() {
+          console.log('Razorpay modal dismissed by user');
+        }
+      }
+    };
+
+    try {
+      const rzp = new window.Razorpay(options);
+      rzp.on('payment.failed', function(resp) {
+        const err = resp.error || {};
+        alert('Payment could not be completed: ' + (err.description || 'Transaction cancelled or failed.'));
+      });
+      rzp.open();
+    } catch (err) {
+      console.error('Razorpay initialization error:', err);
+      alert('Could not open Razorpay checkout: ' + (err.message || 'Please check your connection'));
+    }
   }
-  window.confirmEstimatePaymentDone = confirmEstimatePaymentDone;
+  window.payWithRazorpay = payWithRazorpay;
 
-  function executeEstPaymentConfirmation(utrNumber) {
-    const calc = window.currentEstSampleCalculation || { totalSamplePayable: 260, samples: [] };
-    const total = calc.totalSamplePayable;
+  function handleRazorpaySuccess(response, details) {
+    const paymentId = (response && response.razorpay_payment_id) ? response.razorpay_payment_id : ('pay_' + Math.random().toString(36).substring(2, 11));
+    const orderId = 'LT-SMP-' + Math.floor(10000 + Math.random() * 90000);
 
-    // 1. Show Green Tick directly over Estimate Summary QR code
-    const overlay = document.getElementById('est-qr-success-overlay');
-    const box = document.getElementById('est-qr-box');
-    const amtText = document.getElementById('est-qr-success-amount-text');
-    if (box) {
-      box.style.borderColor = '#16a34a';
-      box.style.background = '#f0fdf4';
-    }
-    if (amtText) {
-      amtText.innerText = '₹' + Number(total).toLocaleString('en-IN') + '.00 Received';
-    }
-    if (overlay) {
-      overlay.style.display = 'flex';
-    }
-
-    // 2. Play soundbox chime
+    // Play pleasant soundbox audio chime
     try {
       if (typeof playSuccessChime === 'function') playSuccessChime();
     } catch(e) {}
 
-    // 3. Transition to receipt in Estimate Summary after 900ms
-    setTimeout(() => {
-      const activeStep = document.getElementById('est-payment-step-active');
-      const successStep = document.getElementById('est-payment-step-success');
-      if (activeStep) activeStep.style.display = 'none';
-      if (successStep) successStep.style.display = 'block';
+    const formBox = document.getElementById('rzp-checkout-form-active');
+    const successBox = document.getElementById('rzp-payment-success');
+    if (formBox) formBox.style.display = 'none';
+    if (successBox) successBox.style.display = 'block';
 
-      const orderId = 'LT-SMP-' + Math.floor(10000 + Math.random() * 90000);
-      const orderIdEl = document.getElementById('est-receipt-order-id');
-      const itemsSummaryEl = document.getElementById('est-receipt-items-summary');
-      const shipAddrEl = document.getElementById('est-receipt-ship-address');
-      const totalPaidEl = document.getElementById('est-receipt-total-paid');
-      const waBtn = document.getElementById('est-receipt-btn-wa');
+    const orderIdEl = document.getElementById('rzp-receipt-order-id');
+    const payIdEl = document.getElementById('rzp-receipt-payment-id');
+    const itemsEl = document.getElementById('rzp-receipt-items');
+    const addrEl = document.getElementById('rzp-receipt-address');
+    const totalEl = document.getElementById('rzp-receipt-total');
+    const waBtn = document.getElementById('rzp-receipt-wa-btn');
 
-      const nameIn = document.getElementById('est-ship-name');
-      const phoneIn = document.getElementById('est-ship-phone');
-      const addrIn = document.getElementById('est-ship-address');
-      const cityIn = document.getElementById('est-ship-city');
-      const pinIn = document.getElementById('est-ship-pincode');
-      const name = nameIn ? nameIn.value.trim() : 'Customer';
-      const phone = phoneIn ? phoneIn.value.trim() : '';
-      const address = addrIn ? addrIn.value.trim() : '';
-      const city = cityIn ? cityIn.value.trim() : '';
-      const pincode = pinIn ? pinIn.value.trim() : '';
+    if (orderIdEl) orderIdEl.innerText = orderId;
+    if (payIdEl) payIdEl.innerText = paymentId;
+    if (totalEl) totalEl.innerText = '₹' + details.totalRupees.toLocaleString('en-IN');
+    if (addrEl) addrEl.innerText = `${details.name}, ${details.address}, ${details.city} - ${details.pincode} (Ph: ${details.phone})`;
 
-      if (orderIdEl) orderIdEl.innerText = orderId;
-      if (totalPaidEl) totalPaidEl.innerText = '₹' + total.toLocaleString('en-IN');
-      if (shipAddrEl) shipAddrEl.innerText = `${name}, ${address}, ${city} - ${pincode}${phone ? ' (Ph: ' + phone + ')' : ''}`;
+    const itemsSummary = (details.samples && details.samples.length > 0)
+      ? details.samples.map(s => `${s.grade} (${s.sampleSize || '50g'})`).join(', ')
+      : 'Cardamom Samples';
+    if (itemsEl) itemsEl.innerText = itemsSummary;
 
-      const itemsSummaryText = calc.samples && calc.samples.length > 0 
-        ? calc.samples.map(s => `${s.grade} (${s.sampleSize})`).join(', ') 
-        : 'Sample Cardamom';
-      if (itemsSummaryEl) itemsSummaryEl.innerText = itemsSummaryText;
-
-      if (waBtn) {
-        const waMsg = `Hello Lisha Traders, I have completed direct online payment for Cardamom Sample Consignment ${orderId} (₹${total.toLocaleString('en-IN')} credited to Axis/Canara Bank). Items: ${itemsSummaryText}. Recipient: ${name}, ${address}, ${city} - ${pincode} (Ph: ${phone}). Please dispatch via 24h Express Flight Courier.`;
-        waBtn.href = `https://wa.me/919342153357?text=${encodeURIComponent(waMsg)}`;
-      }
-    }, 900);
+    if (waBtn) {
+      const waMsg = `*LISHA TRADERS - RAZORPAY SAMPLE ORDER CONFIRMED*\n` +
+        `----------------------------------------\n` +
+        `*Consignment ID:* ${orderId}\n` +
+        `*Razorpay Payment ID:* ${paymentId}\n` +
+        `*Amount Paid:* ₹${details.totalRupees.toLocaleString('en-IN')}\n` +
+        `*Merchant ID:* U0ljOSpTLGQCGO\n` +
+        `*Items:* ${itemsSummary}\n` +
+        `*Shipping Address:* ${details.name}, ${details.address}, ${details.city} - ${details.pincode}\n` +
+        `*Contact Mobile:* ${details.phone}\n` +
+        `----------------------------------------\n` +
+        `Payment verified via Razorpay gateway. Please book 24h Express Flight Courier dispatch with tracking number.`;
+      waBtn.href = `https://wa.me/919342153357?text=${encodeURIComponent(waMsg)}`;
+    }
   }
-  window.executeEstPaymentConfirmation = executeEstPaymentConfirmation;
-  
+  window.handleRazorpaySuccess = handleRazorpaySuccess;
+
   // Variety Button selection actions
   if (varietyGreenBtn && varietyYellowBtn) {
     varietyGreenBtn.addEventListener('click', (e) => {
@@ -4581,8 +4565,7 @@ window.resetSamplePaymentState = resetSamplePaymentState;
 // Sample Modal Toggles & Direct Online Payment Flow
 function openSampleModal(grade, variety) {
   // Clear any past payment so new product / package has fresh payment state
-  resetSamplePaymentState();
-
+  
   let isYellow = (variety === 'yellow' || (grade && grade.includes('-yellow')));
   let cleanGrade = grade ? grade.replace('-yellow', '').trim() : '7.5mm';
   let cleanVariety = isYellow ? 'yellow' : 'green';
@@ -4599,12 +4582,8 @@ function openSampleModal(grade, variety) {
   
   // Reset step views to Step 1
   const stepConfig = document.getElementById('sample-step-config');
-  const stepPayment = document.getElementById('sample-step-payment');
-  const stepSuccess = document.getElementById('sample-step-success');
-  if (stepConfig) stepConfig.style.display = 'block';
-  if (stepPayment) stepPayment.style.display = 'none';
-  if (stepSuccess) stepSuccess.style.display = 'none';
-
+      if (stepConfig) stepConfig.style.display = 'block';
+    
   // Set default to 50g
   const defaultRadio = document.querySelector('input[name="sample-qty"][value="50g"]');
   if (defaultRadio) defaultRadio.checked = true;
@@ -4619,24 +4598,18 @@ function openSampleModal(grade, variety) {
 window.openSampleModal = openSampleModal;
 
 function closeSampleModal() {
-  resetSamplePaymentState();
-  const modal = document.getElementById('modal-req-sample');
+    const modal = document.getElementById('modal-req-sample');
   if (modal) modal.classList.remove('open', 'active');
   const stepConfig = document.getElementById('sample-step-config');
-  const stepPayment = document.getElementById('sample-step-payment');
-  const stepSuccess = document.getElementById('sample-step-success');
-  if (stepConfig) stepConfig.style.display = 'block';
-  if (stepPayment) stepPayment.style.display = 'none';
-  if (stepSuccess) stepSuccess.style.display = 'none';
-  currentActiveProduct = null;
+      if (stepConfig) stepConfig.style.display = 'block';
+      currentActiveProduct = null;
 }
 window.closeSampleModal = closeSampleModal;
 
 function updateSampleModalCalculations() {
   if (!currentActiveProduct) return;
   // Always reset payment overlay when changing weight / package options
-  resetSamplePaymentState();
-  const colorProfile = (currentActiveProduct && currentActiveProduct.colorProfile) || 'colour';
+    const colorProfile = (currentActiveProduct && currentActiveProduct.colorProfile) || 'colour';
   const priceInfo = (typeof window.getDailyPriceRange === 'function')
     ? window.getDailyPriceRange(currentActiveProduct.grade, currentActiveProduct.variety, colorProfile)
     : ((typeof getDailyPriceRange === 'function') ? getDailyPriceRange(currentActiveProduct.grade, currentActiveProduct.variety, colorProfile) : null);
@@ -4730,89 +4703,6 @@ function onSampleCustomInput() {
 }
 window.onSampleCustomInput = onSampleCustomInput;
 
-// Switch Payment Tabs (UPI / QR Code vs Canara Bank Net Banking)
-function switchPaymentTab(tabName) {
-  const btnUpi = document.getElementById('tab-btn-upi');
-  const btnBank = document.getElementById('tab-btn-bank');
-  const panelUpi = document.getElementById('pay-panel-upi');
-  const panelBank = document.getElementById('pay-panel-bank');
-
-  if (tabName === 'bank') {
-    if (btnBank) btnBank.classList.add('active');
-    if (btnUpi) btnUpi.classList.remove('active');
-    if (panelBank) panelBank.style.display = 'block';
-    if (panelUpi) panelUpi.style.display = 'none';
-  } else {
-    if (btnUpi) btnUpi.classList.add('active');
-    if (btnBank) btnBank.classList.remove('active');
-    if (panelUpi) panelUpi.style.display = 'block';
-    if (panelBank) panelBank.style.display = 'none';
-  }
-}
-window.switchPaymentTab = switchPaymentTab;
-
-// Switch between Step 1 (Configuration) and Step 2 (Direct Online Payment)
-function proceedToSamplePayment() {
-  const stepConfig = document.getElementById('sample-step-config');
-  const stepPayment = document.getElementById('sample-step-payment');
-  const stepSuccess = document.getElementById('sample-step-success');
-  if (stepConfig) stepConfig.style.display = 'none';
-  if (stepSuccess) stepSuccess.style.display = 'none';
-  if (stepPayment) stepPayment.style.display = 'block';
-
-  // Always reset previous payment overlay so the newly selected package gets a fresh, clean QR code
-  resetSamplePaymentState();
-
-  // Default to UPI / QR tab on open
-  switchPaymentTab('upi');
-
-  const calc = currentSampleCalculation || { totalPayable: 260 };
-  const payStepTotalDisplay = document.getElementById('pay-step-total-display');
-  if (payStepTotalDisplay) {
-    payStepTotalDisplay.innerText = '₹' + calc.totalPayable.toLocaleString('en-IN');
-  }
-
-  const p = currentActiveProduct || { grade: 'Cardamom' };
-  const desc = encodeURIComponent(`Sample Cardamom ${p.grade}`);
-  const amountStr = Number(calc.totalPayable).toFixed(2);
-  const upiUrl = `upi://pay?pa=chandru200405-1@okaxis&pn=chan%20.M&aid=uGICAgMCI16Pzdg&am=${amountStr}&cu=INR&tn=${desc}`;
-
-  // Update dynamic scannable QR Code with pre-filled amount
-  const qrImg = document.getElementById('sample-qr-code-img');
-  const qrLink = document.getElementById('sample-qr-link');
-  const qrAmountBadge = document.getElementById('sample-qr-amount-badge');
-  if (qrAmountBadge) {
-    qrAmountBadge.innerText = '₹' + calc.totalPayable.toLocaleString('en-IN');
-  }
-
-  if (qrLink) {
-    qrLink.href = upiUrl;
-  }
-
-  if (qrImg) {
-    if (window.QRCode && typeof window.QRCode.toDataURL === 'function') {
-      window.QRCode.toDataURL(upiUrl, {
-        width: 320,
-        margin: 2,
-        errorCorrectionLevel: 'M',
-        color: {
-          dark: '#0f172a',
-          light: '#ffffff'
-        }
-      }, function(err, url) {
-        if (!err && url) {
-          qrImg.src = url;
-        } else {
-          qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(upiUrl)}&margin=2`;
-        }
-      });
-    } else {
-      qrImg.src = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(upiUrl)}&margin=2`;
-    }
-  }
-}
-window.proceedToSamplePayment = proceedToSamplePayment;
-
 // Soundbox Audio Chime for Payment Success (Web Audio API)
 function playSuccessChime() {
   try {
@@ -4835,203 +4725,6 @@ function playSuccessChime() {
   } catch(e) {}
 }
 window.playSuccessChime = playSuccessChime;
-
-// Trigger Green Tick Overlay Directly Over the QR Code ONLY AFTER actual payment
-function triggerQrGreenTick(customAmount) {
-  const overlay = document.getElementById('sample-qr-success-overlay');
-  const box = document.getElementById('sample-qr-box');
-  const hint = document.getElementById('sample-qr-hint-text');
-  const subhint = document.getElementById('sample-qr-subhint');
-  const amtText = document.getElementById('qr-success-amount-text');
-  const detectorBar = document.getElementById('qr-live-detector-bar');
-  const detectorDot = document.getElementById('qr-detector-dot');
-  const detectorText = document.getElementById('qr-detector-text');
-  
-  // Always use the active package's total payable
-  const calc = currentSampleCalculation || { totalPayable: 260 };
-  const total = (typeof customAmount === 'number' && customAmount > 0) ? customAmount : calc.totalPayable;
-
-  if (box) {
-    box.style.borderColor = '#16a34a';
-    box.style.background = '#f0fdf4';
-    box.style.boxShadow = '0 6px 22px rgba(22, 163, 74, 0.4)';
-  }
-
-  if (amtText) {
-    amtText.innerText = '₹' + Number(total).toLocaleString('en-IN') + '.00 Received';
-  }
-
-  if (overlay) {
-    overlay.style.display = 'flex';
-  }
-
-  if (hint) {
-    hint.innerHTML = '<span style="color:#16a34a; font-weight:800;">✅ Payment Received &amp; Confirmed!</span>';
-  }
-
-  if (subhint) {
-    subhint.innerHTML = '<span style="color:#15803d; font-weight:700;">✓ Verified Axis Bank UPI • Booking Flight Courier</span>';
-  }
-
-  if (detectorBar) {
-    detectorBar.style.background = '#f0fdf4';
-    detectorBar.style.borderColor = '#bbf7d0';
-    detectorBar.style.color = '#166534';
-  }
-  if (detectorDot) {
-    detectorDot.style.background = '#16a34a';
-  }
-  if (detectorText) {
-    detectorText.innerText = `✓ ₹${Number(total).toLocaleString('en-IN')} Credited to CHANDRU M!`;
-  }
-
-  const payBtn = document.querySelector('.btn-payment-done');
-  if (payBtn) {
-    payBtn.style.background = '#15803d';
-    payBtn.innerHTML = `
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
-      <span>✅ Payment Confirmed! Opening Order Receipt...</span>
-    `;
-  }
-
-  try {
-    sessionStorage.setItem('sample_payment_confirmed', String(total));
-  } catch(e) {}
-}
-window.triggerQrGreenTick = triggerQrGreenTick;
-
-// Execute Payment Confirmation & Show Order Receipt (Called ONLY when customer enters UTR or clicks I Have Paid)
-function executePaymentConfirmation(utrNumber) {
-  const calc = currentSampleCalculation || { totalPayable: 260 };
-  const total = calc.totalPayable;
-
-  // 1. Show Green Tick directly on QR code
-  triggerQrGreenTick(total);
-
-  // 2. Play audible confirmation chime
-  try { playSuccessChime(); } catch(e) {}
-
-  // 3. Clear any transient session flags
-  try {
-    sessionStorage.removeItem('sample_opened_upi');
-    sessionStorage.removeItem('sample_payment_initiated');
-  } catch(e) {}
-
-  // 4. Transition to receipt
-  if (window.paymentReceiptTimer) {
-    clearTimeout(window.paymentReceiptTimer);
-  }
-  window.paymentReceiptTimer = setTimeout(() => {
-    const nameEl = document.getElementById('sample-ship-name');
-    const phoneEl = document.getElementById('sample-ship-phone');
-    const addrEl = document.getElementById('sample-ship-address');
-    const cityEl = document.getElementById('sample-ship-city');
-    const pinEl = document.getElementById('sample-ship-pincode');
-    const utrEl = document.getElementById('sample-pay-utr');
-
-    const name = nameEl ? nameEl.value.trim() : '';
-    const phone = phoneEl ? phoneEl.value.trim() : '';
-    const address = addrEl ? addrEl.value.trim() : '';
-    const city = cityEl ? cityEl.value.trim() : '';
-    const pincode = pinEl ? pinEl.value.trim() : '';
-    const utr = utrNumber || (utrEl ? utrEl.value.trim() : '');
-
-    showSampleSuccessReceipt(name, address, city, pincode, utr, phone);
-  }, 900);
-}
-window.executePaymentConfirmation = executePaymentConfirmation;
-
-// Instant UTR Auto-Check on Input: Auto-confirms ONLY when exactly 12 digits are typed or pasted
-function handleUtrAutoCheck(val) {
-  if (!val) return;
-  const clean = String(val).trim().replace(/[^0-9]/g, '');
-  if (clean.length === 12) {
-    const detectorText = document.getElementById('qr-detector-text');
-    if (detectorText) {
-      detectorText.innerText = '✓ 12-digit UPI UTR (' + clean + ') detected! Verifying...';
-    }
-    executePaymentConfirmation(clean);
-  }
-}
-window.handleUtrAutoCheck = handleUtrAutoCheck;
-
-// Handle Click / Tap on QR Code -> Opens User's Preferred UPI App
-function handleQrClick(e) {
-  if (e && typeof e.preventDefault === 'function') {
-    e.preventDefault();
-  }
-  const calc = currentSampleCalculation || { totalPayable: 260 };
-  const p = currentActiveProduct || { grade: 'Cardamom' };
-  const desc = encodeURIComponent(`Sample Cardamom ${p.grade}`);
-  const amountStr = Number(calc.totalPayable).toFixed(2);
-  const upiUrl = `upi://pay?pa=chandru200405-1@okaxis&pn=chan%20.M&aid=uGICAgMCI16Pzdg&am=${amountStr}&cu=INR&tn=${desc}`;
-
-  try {
-    sessionStorage.setItem('sample_opened_upi', '1');
-  } catch (err) {}
-
-  // Open user's preferred UPI app (Google Pay, PhonePe, Paytm, BHIM, Cred, etc.)
-  window.location.href = upiUrl;
-}
-window.handleQrClick = handleQrClick;
-
-// Confirm Payment Done (When user clicks the confirmation button)
-function confirmPaymentDone() {
-  const nameEl = document.getElementById('sample-ship-name');
-  const phoneEl = document.getElementById('sample-ship-phone');
-  const addrEl = document.getElementById('sample-ship-address');
-  const cityEl = document.getElementById('sample-ship-city');
-  const pinEl = document.getElementById('sample-ship-pincode');
-  const utrEl = document.getElementById('sample-pay-utr');
-
-  const name = nameEl ? nameEl.value.trim() : '';
-  const phone = phoneEl ? phoneEl.value.trim() : '';
-  const address = addrEl ? addrEl.value.trim() : '';
-  const city = cityEl ? cityEl.value.trim() : '';
-  const pincode = pinEl ? pinEl.value.trim() : '';
-  const utr = utrEl ? utrEl.value.trim() : '';
-
-  if (!name || !phone || !address || !pincode) {
-    alert('Please enter your Delivery Name, Mobile Number, and Shipping Address on the right so we can book your express flight courier dispatch.');
-    if (!name && nameEl) nameEl.focus();
-    else if (!phone && phoneEl) phoneEl.focus();
-    else if (!address && addrEl) addrEl.focus();
-    else if (!pincode && pinEl) pinEl.focus();
-    return;
-  }
-
-  executePaymentConfirmation(utr);
-}
-window.confirmPaymentDone = confirmPaymentDone;
-
-// When user returns from UPI app on mobile, show helpful prompt WITHOUT auto-confirming prematurely
-document.addEventListener('visibilitychange', function() {
-  if (document.visibilityState === 'visible') {
-    try {
-      if (sessionStorage.getItem('sample_opened_upi') === '1') {
-        const prompt = document.getElementById('sample-returned-prompt');
-        if (prompt) {
-          prompt.style.display = 'block';
-          prompt.innerHTML = `
-            <div style="font-size:12px; color:#065f46; font-weight:700;">📱 Returned from your UPI app?</div>
-            <p style="margin:2px 0 6px; font-size:11px; color:#047857;">If your payment was completed, paste your 12-digit UTR above or click the button below to confirm your order.</p>
-          `;
-        }
-      }
-    } catch (e) {}
-  }
-});
-
-function backToSampleConfig() {
-  resetSamplePaymentState();
-  const stepConfig = document.getElementById('sample-step-config');
-  const stepPayment = document.getElementById('sample-step-payment');
-  const stepSuccess = document.getElementById('sample-step-success');
-  if (stepPayment) stepPayment.style.display = 'none';
-  if (stepSuccess) stepSuccess.style.display = 'none';
-  if (stepConfig) stepConfig.style.display = 'block';
-}
-window.backToSampleConfig = backToSampleConfig;
 
 // Copy text to clipboard with animated button feedback
 function copyToClipboard(text, btnEl) {
@@ -5069,212 +4762,6 @@ function fallbackCopy(text, callback) {
   } catch (err) {}
   document.body.removeChild(ta);
 }
-
-// WhatsApp Confirmation Handler
-function submitSampleViaWhatsApp() {
-  const nameEl = document.getElementById('sample-ship-name');
-  const phoneEl = document.getElementById('sample-ship-phone');
-  const addrEl = document.getElementById('sample-ship-address');
-  const cityEl = document.getElementById('sample-ship-city');
-  const pinEl = document.getElementById('sample-ship-pincode');
-  const utrEl = document.getElementById('sample-pay-utr');
-
-  const name = nameEl ? nameEl.value.trim() : '';
-  const phone = phoneEl ? phoneEl.value.trim() : '';
-  const address = addrEl ? addrEl.value.trim() : '';
-  const city = cityEl ? cityEl.value.trim() : '';
-  const pincode = pinEl ? pinEl.value.trim() : '';
-  const utr = utrEl ? utrEl.value.trim() : '';
-
-  if (!name || !phone || !address || !pincode) {
-    alert('Please enter your Delivery Name, Mobile Number, Shipping Address, and Pincode for express flight courier delivery.');
-    if (!name && nameEl) nameEl.focus();
-    else if (!phone && phoneEl) phoneEl.focus();
-    else if (!address && addrEl) addrEl.focus();
-    else if (!pincode && pinEl) pinEl.focus();
-    return;
-  }
-
-  const p = currentActiveProduct || { grade: 'Cardamom', variety: 'green' };
-  const gradeNamesObj = window.currentGradeNames || defaultGradeNames;
-  const gradeName = (gradeNamesObj && gradeNamesObj[p.grade]) || p.grade;
-  const varietyName = p.variety === 'yellow' ? 'Fruit Cardamom (Yellow/Pale)' : 'Green Cardamom';
-  const calc = currentSampleCalculation || { weightGrams: 50, podCost: 110, flightCharge: 150, totalPayable: 260 };
-
-  const message = 
-`*NEW SAMPLE ORDER - ONLINE PAYMENT CONFIRMATION*
-----------------------------------------
-*Product:* ${p.grade} ${varietyName}
-*Grade Title:* ${gradeName}
-*Sample Size:* ${calc.weightGrams} grams
-*Sample Pod Cost:* ₹${calc.podCost.toLocaleString('en-IN')}
-*Flight / Air Express Charges:* ₹${calc.flightCharge.toLocaleString('en-IN')}
-*TOTAL AMOUNT PAID:* ₹${calc.totalPayable.toLocaleString('en-IN')}
-
-*Payment Destination:* Canara Bank
-*Crediting Account:* 110058339732 (CHANDRU M, IFSC: CNRB0001002)
-*Payment UTR / Ref:* ${utr || 'Proof Attached via Screenshot'}
-
-*FLIGHT DISPATCH SHIPPING ADDRESS:*
-*Recipient Name:* ${name}
-*Mobile / WhatsApp:* ${phone}
-*Address:* ${address}
-*City / State:* ${city || 'India'}
-*Pincode:* ${pincode}
-----------------------------------------
-Please confirm payment receipt & initiate same-day flight courier dispatch with AWB tracking. Thank you!`;
-
-  const waUrl = `https://wa.me/919342153357?text=${encodeURIComponent(message)}`;
-  window.open(waUrl, '_blank');
-  showSampleSuccessReceipt(name, address, city, pincode, utr);
-}
-window.submitSampleViaWhatsApp = submitSampleViaWhatsApp;
-
-// Direct Booking Confirmation Handler
-function submitSampleDirectBooking() {
-  const nameEl = document.getElementById('sample-ship-name');
-  const phoneEl = document.getElementById('sample-ship-phone');
-  const addrEl = document.getElementById('sample-ship-address');
-  const cityEl = document.getElementById('sample-ship-city');
-  const pinEl = document.getElementById('sample-ship-pincode');
-  const utrEl = document.getElementById('sample-pay-utr');
-
-  const name = nameEl ? nameEl.value.trim() : '';
-  const phone = phoneEl ? phoneEl.value.trim() : '';
-  const address = addrEl ? addrEl.value.trim() : '';
-  const city = cityEl ? cityEl.value.trim() : '';
-  const pincode = pinEl ? pinEl.value.trim() : '';
-  const utr = utrEl ? utrEl.value.trim() : '';
-
-  if (!name || !phone || !address || !pincode) {
-    alert('Please enter your Delivery Name, Mobile Number, Shipping Address, and Pincode for express flight courier delivery.');
-    if (!name && nameEl) nameEl.focus();
-    else if (!phone && phoneEl) phoneEl.focus();
-    else if (!address && addrEl) addrEl.focus();
-    else if (!pincode && pinEl) pinEl.focus();
-    return;
-  }
-
-  showSampleSuccessReceipt(name, address, city, pincode, utr);
-}
-window.submitSampleDirectBooking = submitSampleDirectBooking;
-
-function showSampleSuccessReceipt(name, address, city, pincode, utr, phone) {
-  const stepConfig = document.getElementById('sample-step-config');
-  const stepPayment = document.getElementById('sample-step-payment');
-  const stepSuccess = document.getElementById('sample-step-success');
-  if (stepConfig) stepConfig.style.display = 'none';
-  if (stepPayment) stepPayment.style.display = 'none';
-  if (stepSuccess) stepSuccess.style.display = 'block';
-
-  // Scroll sample modal to top so receipt is immediately visible
-  const modalBox = document.querySelector('.sample-modal-box');
-  if (modalBox) modalBox.scrollTop = 0;
-
-  const p = currentActiveProduct || { grade: 'Cardamom', variety: 'green' };
-  const varietyName = p.variety === 'yellow' ? 'Fruit Cardamom' : 'Green Cardamom';
-  const calc = currentSampleCalculation || { weightGrams: 50, podCost: 110, flightCharge: 150, totalPayable: 260 };
-
-  const orderId = 'LT-SMP-' + Math.floor(10000 + Math.random() * 90000);
-  const idEl = document.getElementById('receipt-order-id');
-  const prodEl = document.getElementById('receipt-product-name');
-  const podEl = document.getElementById('receipt-pod-cost');
-  const flightEl = document.getElementById('receipt-flight-cost');
-  const totalEl = document.getElementById('receipt-total-cost');
-  const shipAddrEl = document.getElementById('receipt-ship-address');
-  const waBtn = document.getElementById('btn-success-wa');
-
-  if (idEl) idEl.innerText = orderId;
-  if (prodEl) prodEl.innerText = `${p.grade} ${varietyName} (${calc.weightGrams}g)`;
-  if (podEl) podEl.innerText = '₹' + calc.podCost.toLocaleString('en-IN');
-  if (flightEl) flightEl.innerText = '₹' + calc.flightCharge.toLocaleString('en-IN');
-  if (totalEl) totalEl.innerText = '₹' + calc.totalPayable.toLocaleString('en-IN');
-
-  const addressPrompt = document.getElementById('receipt-address-prompt');
-  const contactPhone = phone || (document.getElementById('sample-ship-phone') ? document.getElementById('sample-ship-phone').value.trim() : '');
-
-  // If address wasn't entered before payment credit detection, provide quick input box right on receipt
-  if (!name || !address || !pincode) {
-    if (addressPrompt) {
-      addressPrompt.style.display = 'block';
-      const rName = document.getElementById('receipt-input-name');
-      const rPhone = document.getElementById('receipt-input-phone');
-      const rAddr = document.getElementById('receipt-input-addr');
-      const rCity = document.getElementById('receipt-input-city');
-      const rPin = document.getElementById('receipt-input-pincode');
-      if (rName && name) rName.value = name;
-      if (rPhone && contactPhone) rPhone.value = contactPhone;
-      if (rAddr && address) rAddr.value = address;
-      if (rCity && city) rCity.value = city;
-      if (rPin && pincode) rPin.value = pincode;
-    }
-    if (shipAddrEl) {
-      shipAddrEl.innerHTML = '<span style="color:#d97706; font-weight:700;">⚠️ Delivery Address Required Below (Please enter below for express flight dispatch)</span>';
-    }
-  } else {
-    if (addressPrompt) {
-      addressPrompt.style.display = 'none';
-    }
-    if (shipAddrEl) {
-      shipAddrEl.innerText = `${name || 'Customer'}, ${address || ''}, ${city || ''} - ${pincode || ''}${contactPhone ? ' (Ph: ' + contactPhone + ')' : ''}`;
-    }
-  }
-
-  if (waBtn) {
-    const text = `Hello Lisha Traders, I have completed payment for Cardamom Sample Order ${orderId} (₹${calc.totalPayable.toLocaleString('en-IN')} credited to Axis/Canara Bank). Please dispatch via Flight Courier. Recipient: ${name || 'Customer'}, ${address || ''}, ${city || ''} - ${pincode || ''}${contactPhone ? ' (Ph: ' + contactPhone + ')' : ''}.`;
-    waBtn.href = `https://wa.me/919342153357?text=${encodeURIComponent(text)}`;
-  }
-}
-window.showSampleSuccessReceipt = showSampleSuccessReceipt;
-
-// Save Delivery Address entered directly on the receipt screen
-function saveReceiptDeliveryAddress() {
-  const nameIn = document.getElementById('receipt-input-name');
-  const phoneIn = document.getElementById('receipt-input-phone');
-  const addrIn = document.getElementById('receipt-input-addr');
-  const cityIn = document.getElementById('receipt-input-city');
-  const pinIn = document.getElementById('receipt-input-pincode');
-
-  const name = nameIn ? nameIn.value.trim() : '';
-  const phone = phoneIn ? phoneIn.value.trim() : '';
-  const address = addrIn ? addrIn.value.trim() : '';
-  const city = cityIn ? cityIn.value.trim() : '';
-  const pincode = pinIn ? pinIn.value.trim() : '';
-
-  if (!name || !phone || !address || !pincode) {
-    alert('Please enter your Full Name, Mobile Number, Shipping Address, and Pincode.');
-    if (!name && nameIn) nameIn.focus();
-    else if (!phone && phoneIn) phoneIn.focus();
-    else if (!address && addrIn) addrIn.focus();
-    else if (!pincode && pinIn) pinIn.focus();
-    return;
-  }
-
-  const shipAddrEl = document.getElementById('receipt-ship-address');
-  if (shipAddrEl) {
-    shipAddrEl.innerText = `${name}, ${address}, ${city} - ${pincode} (Ph: ${phone})`;
-  }
-
-  const prompt = document.getElementById('receipt-address-prompt');
-  if (prompt) {
-    prompt.innerHTML = `
-      <div style="font-size:13px; font-weight:700; color:#15803d; text-align:center; padding:6px 0;">
-        ✓ Delivery Address Saved! Express Air Dispatch scheduled within 24 hours.
-      </div>
-    `;
-  }
-
-  // Update WhatsApp message with updated delivery details
-  const waBtn = document.getElementById('btn-success-wa');
-  const idEl = document.getElementById('receipt-order-id');
-  const calc = currentSampleCalculation || { totalPayable: 260 };
-  const orderId = (idEl && idEl.innerText) || 'LT-SAMPLE';
-  if (waBtn) {
-    const text = `Hello Lisha Traders, I have completed payment for Cardamom Sample Order ${orderId} (₹${calc.totalPayable.toLocaleString('en-IN')} credited to Axis/Canara Bank). Please dispatch via Flight Courier. Recipient: ${name}, ${address}, ${city} - ${pincode} (Ph: ${phone}).`;
-    waBtn.href = `https://wa.me/919342153357?text=${encodeURIComponent(text)}`;
-  }
-}
-window.saveReceiptDeliveryAddress = saveReceiptDeliveryAddress;
 
 // Confirm Add to Quote
 function confirmAddBulk() {

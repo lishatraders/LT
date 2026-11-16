@@ -7049,4 +7049,20 @@ img.clickable-spec:hover {
   animation: radarPulse 1.6s infinite ease-in-out;
 }
 
+/* Razorpay Checkout Card Styles */
+#est-razorpay-checkout-box {
+  animation: fadeIn 0.3s ease-in-out;
+}
+#btn-rzp-pay:hover {
+  background: #15803d !important;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(22, 163, 74, 0.45) !important;
+}
+#btn-rzp-pay:active {
+  transform: translateY(1px);
+}
+#rzp-payment-success {
+  animation: fadeIn 0.4s ease-in-out;
+}
+
 
